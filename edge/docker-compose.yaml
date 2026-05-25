@@ -1,0 +1,39 @@
+name: iot-security-edge
+
+services:
+  cloudflared:
+    container_name: iot-security-edge-cloudflared-sidecar
+    image: cloudflare/cloudflared:latest
+    restart: always
+    command: access tcp --hostname ${TB_MQTT_HOSTNAME} --url 0.0.0.0:1883
+
+  tb-gateway:
+    container_name: iot-security-edge-tb-gateway
+    restart: always
+    image: "thingsboard/tb-gateway:3.8-latest"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "10"
+    env_file:
+      - .env
+    environment:
+      TB_GW_HOST: cloudflared
+      TB_GW_PORT: 1883
+      TB_GW_ACCESS_TOKEN: ${TB_GW_ACCESS_TOKEN:-token}
+    volumes:
+      - tb-gw-config:/thingsboard_gateway/config
+      - tb-gw-logs:/var/log/thingsboard-gateway
+      - tb-gw-extensions:/var/lib/thingsboard_gateway/extensions
+
+volumes:
+  tb-gw-config:
+    name: iot-security-edge-tb-gw-config
+    driver: local
+  tb-gw-logs:
+    name: iot-security-edge-tb-gw-logs
+    driver: local
+  tb-gw-extensions:
+    name: iot-security-edge-tb-gw-extensions
+    driver: local
